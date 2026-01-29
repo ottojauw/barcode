@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .loading {
+            font-size: 18px;
+            color: #666;
+        }
+
+        .error {
+            color: #e74c3c;
+            padding: 20px;
+            background: #fee;
+            border-radius: 8px;
+            margin: 20px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+        }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .info strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="loading" id="loading">Loading barcode...</div>
+        <div class="error" id="error" style="display:none;"></div>
+        <img id="barcodeImage" style="display:none;" alt="Barcode">
+        <div class="info" id="info" style="display:none;"></div>
+    </div>
+
+    <script>
+        window.onload = async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const text = urlParams.get('text');
+            const format = urlParams.get('format') || 'CODE128';
+            const width = urlParams.get('width') || '2';
+            const height = urlParams.get('height') || '100';
+
+            if (!text) {
+                showError('Missing required parameter: text<br>Usage: ?text=YOUR_BARCODE_TEXT');
+                return;
+            }
+
+            try {
+                // Build API URL - using the current page's base URL
+                // In production, replace with actual API URL
+                const apiUrl = window.location.origin + window.location.pathname.replace('barcode_display', 'barcode_api');
+                const params = new URLSearchParams();
+                params.set('text', text);
+                params.set('format', format);
+                params.set('width', width);
+                params.set('height', height);
+                
+                const fullApiUrl = apiUrl + '?' + params.toString();
+
+                // Fetch from API
+                const response = await fetch(fullApiUrl);
+                const html = await response.text();
+                
+                // Extract JSON from <pre> tag
+                const preStart = html.indexOf('<pre>');
+                const preEnd = html.indexOf('</pre>');
+                
+                if (preStart === -1 || preEnd === -1) {
+                    throw new Error('Invalid API response format');
+                }
+                
+                const jsonText = html.substring(preStart + 5, preEnd);
+                const data = JSON.parse(jsonText);
+
+                if (data.error) {
+                    showError('API Error: ' + data.error);
+                    return;
+                }
+
+                // Display the barcode image
+                const img = document.getElementById('barcodeImage');
+                img.src = data.image;
+                img.style.display = 'block';
+
+                // Show info
+                const info = document.getElementById('info');
+                info.innerHTML = `
+                    <strong>Barcode Details:</strong><br>
+                    Text: ${data.text}<br>
+                    Format: ${data.format}<br>
+                    Dimensions: ${data.width}x${data.height}<br>
+                    Generated: ${new Date(data.timestamp).toLocaleString()}
+                `;
+                info.style.display = 'block';
+
+                document.getElementById('loading').style.display = 'none';
+
+            } catch (e) {
+                showError('Error loading barcode: ' + e.message);
+            }
+        };
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerHTML = message;
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
