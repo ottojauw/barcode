@@ -8,6 +8,7 @@
 </head>
 <body>
     <svg id="barcode" style="display:none;"></svg>
+    <pre id="output"></pre>
     
     <script>
         window.onload = function() {
@@ -19,11 +20,12 @@
 
             if (!text) {
                 // Return error JSON
-                document.body.innerHTML = '<pre>' + JSON.stringify({
+                const errorResponse = {
                     error: 'Missing required parameter: text',
                     usage: 'Add ?text=YOUR_BARCODE_TEXT to the URL',
                     example: '?text=123456789012&format=CODE128&width=2&height=100'
-                }, null, 2) + '</pre>';
+                };
+                document.getElementById('output').textContent = JSON.stringify(errorResponse, null, 2);
                 return;
             }
 
@@ -65,18 +67,19 @@
                         timestamp: new Date().toISOString()
                     };
                     
-                    document.body.innerHTML = '<pre>' + JSON.stringify(response, null, 2) + '</pre>';
+                    document.getElementById('output').textContent = JSON.stringify(response, null, 2);
                 };
 
                 img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
 
             } catch (e) {
                 // Return error JSON
-                document.body.innerHTML = '<pre>' + JSON.stringify({
+                const errorResponse = {
                     error: e.message,
                     text: text,
                     format: format
-                }, null, 2) + '</pre>';
+                };
+                document.getElementById('output').textContent = JSON.stringify(errorResponse, null, 2);
             }
         };
     </script>
