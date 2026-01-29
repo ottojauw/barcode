@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Viewer</title>
+    <style>
+        .barcode-png {
+            display: block;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <img class="barcode-png" style="display: block;" alt="Barcode" id="barcodeImage">
+
+    <script>
+        window.onload = async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const text = urlParams.get('text');
+            const format = urlParams.get('format') || '';
+            const width = urlParams.get('width') || '';
+            const height = urlParams.get('height') || '';
+
+            if (!text) {
+                document.body.innerHTML = '<h2>ERROR: Missing text parameter</h2><p>Usage: ?text=YOUR_BARCODE_TEXT</p><p>Example: ?text=123456789012&format=CODE128&width=2&height=100</p>';
+                return;
+            }
+
+            try {
+                // Build URL to first HTML
+                const base64Url = window.location.origin + window.location.pathname.replace('barcode_viewer', 'barcode_base64');
+                let apiUrl = base64Url + '?text=' + encodeURIComponent(text);
+                
+                if (format) apiUrl += '&format=' + encodeURIComponent(format);
+                if (width) apiUrl += '&width=' + encodeURIComponent(width);
+                if (height) apiUrl += '&height=' + encodeURIComponent(height);
+
+                // Fetch base64 encoding
+                const response = await fetch(apiUrl);
+                const base64Data = await response.text();
+
+                if (base64Data.startsWith('ERROR:')) {
+                    document.body.innerHTML = '<p>' + base64Data + '</p>';
+                    return;
+                }
+
+                // Display the image
+                document.getElementById('barcodeImage').src = base64Data;
+
+            } catch (e) {
+                document.body.innerHTML = '<p>ERROR: ' + e.message + '</p>';
+            }
+        };
+    </script>
+</body>
+</html>
