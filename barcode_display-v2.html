@@ -97,13 +97,18 @@
                 const response = await fetch(fullApiUrl);
                 const html = await response.text();
                 
-                // Parse JSON from the response
+                // Parse JSON from the response - extract from <pre> tag and decode HTML entities
                 const jsonMatch = html.match(/<pre>([\s\S]*?)<\/pre>/);
                 if (!jsonMatch) {
                     throw new Error('Invalid API response');
                 }
                 
-                const data = JSON.parse(jsonMatch[1]);
+                // Decode HTML entities
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(jsonMatch[1], 'text/html');
+                const jsonText = doc.documentElement.textContent;
+                
+                const data = JSON.parse(jsonText);
 
                 if (data.error) {
                     showError('API Error: ' + data.error);
@@ -129,7 +134,7 @@
                 document.getElementById('loading').style.display = 'none';
 
             } catch (e) {
-                showError('Error loading barcode: ' + e.message);
+                showError('Error loading barcode : ' + e.message);
             }
         };
 
