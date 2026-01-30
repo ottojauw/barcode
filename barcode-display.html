@@ -73,33 +73,33 @@
             iframe.style.display = 'none';
             
             // Construct URL to the generator page with all parameters
-            const generatorUrl = 'barcode-generator-json.html?text=' + encodeURIComponent(barcodeText) +
+            const generatorUrl = 'barcode-generator.html?text=' + encodeURIComponent(barcodeText) +
                                 '&type=' + encodeURIComponent(barcodeType) +
                                 '&width=' + encodeURIComponent(barcodeWidth) +
                                 '&height=' + encodeURIComponent(barcodeHeight);
             
             iframe.onload = function() {
                 try {
-                    // Access the window object of the iframe to get the response
-                    const jsonData = iframe.contentWindow.barcodeResponse;
+                    // Get the base64 string from the iframe's window object
+                    const base64Image = iframe.contentWindow.barcodeBase64;
                     
-                    if (jsonData && jsonData.success) {
+                    if (base64Image && base64Image.startsWith('data:image')) {
                         // Display the barcode image
                         contentDiv.innerHTML = `
                             <div class="barcode-container">
-                                <img src="${jsonData.barcode}" alt="Barcode for ${jsonData.text}">
+                                <img src="${base64Image}" alt="Barcode for ${barcodeText}">
                                 <div class="barcode-text">
-                                    <strong>Text:</strong> ${jsonData.text}<br>
-                                    <strong>Type:</strong> ${jsonData.type}<br>
-                                    <strong>Width:</strong> ${jsonData.width} | <strong>Height:</strong> ${jsonData.height}
+                                    <strong>Text:</strong> ${barcodeText}<br>
+                                    <strong>Type:</strong> ${barcodeType}<br>
+                                    <strong>Width:</strong> ${barcodeWidth} | <strong>Height:</strong> ${barcodeHeight}
                                 </div>
                             </div>
                         `;
-                    } else if (jsonData) {
-                        contentDiv.className = 'error';
-                        contentDiv.innerHTML = `Error: ${jsonData.error}`;
                     } else {
-                        throw new Error('No response data available');
+                        // Try to get error message from iframe body
+                        const errorMsg = iframe.contentWindow.document.body.textContent;
+                        contentDiv.className = 'error';
+                        contentDiv.innerHTML = `Error: ${errorMsg || 'Failed to generate barcode'}`;
                     }
                     
                     // Remove the iframe after a short delay
