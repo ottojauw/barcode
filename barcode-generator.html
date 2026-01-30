@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Generator API</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+    <script>
+        // Get parameters from query string
+        const urlParams = new URLSearchParams(window.location.search);
+        const barcodeText = urlParams.get('text');
+        const barcodeType = urlParams.get('type') || 'CODE128';
+        const barcodeWidth = parseInt(urlParams.get('width')) || 2;
+        const barcodeHeight = parseInt(urlParams.get('height')) || 100;
+
+        if (barcodeText) {
+            try {
+                // Create a canvas element
+                const canvas = document.createElement('canvas');
+                
+                // Generate barcode on the canvas
+                JsBarcode(canvas, barcodeText, {
+                    format: barcodeType,
+                    width: barcodeWidth,
+                    height: barcodeHeight,
+                    displayValue: true
+                });
+
+                // Convert canvas to base64
+                const base64Image = canvas.toDataURL('image/png');
+
+                // Return JSON response
+                const response = {
+                    success: true,
+                    barcode: base64Image,
+                    text: barcodeText,
+                    type: barcodeType,
+                    width: barcodeWidth,
+                    height: barcodeHeight
+                };
+
+                document.body.innerHTML = '<pre>' + JSON.stringify(response, null, 2) + '</pre>';
+                document.body.style.fontFamily = 'monospace';
+            } catch (error) {
+                const errorResponse = {
+                    success: false,
+                    error: error.message,
+                    text: barcodeText,
+                    type: barcodeType,
+                    width: barcodeWidth,
+                    height: barcodeHeight
+                };
+                document.body.innerHTML = '<pre>' + JSON.stringify(errorResponse, null, 2) + '</pre>';
+                document.body.style.fontFamily = 'monospace';
+                document.body.style.color = 'red';
+            }
+        } else {
+            const errorResponse = {
+                success: false,
+                error: "No barcode text provided. Use ?text=YOUR_TEXT in the URL",
+                example: window.location.href + "?text=123456789&type=CODE128&width=2&height=100",
+                supportedTypes: ["CODE128", "CODE39", "EAN13", "EAN8", "UPC", "ITF14", "MSI", "pharmacode"]
+            };
+            document.body.innerHTML = '<pre>' + JSON.stringify(errorResponse, null, 2) + '</pre>';
+            document.body.style.fontFamily = 'monospace';
+            document.body.style.color = 'orange';
+        }
+    </script>
+</body>
+</html>

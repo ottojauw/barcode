@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Display</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .barcode-container {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+        .barcode-text {
+            margin-top: 15px;
+            font-size: 18px;
+            color: #555;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #d32f2f;
+            text-align: center;
+            padding: 20px;
+            background: #ffebee;
+            border-radius: 4px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Barcode Display</h1>
+        <div id="content" class="loading">Loading barcode...</div>
+    </div>
+
+    <script>
+        // Get parameters from query string
+        const urlParams = new URLSearchParams(window.location.search);
+        const barcodeText = urlParams.get('text');
+        const barcodeType = urlParams.get('type') || 'CODE128';
+        const barcodeWidth = urlParams.get('width') || '2';
+        const barcodeHeight = urlParams.get('height') || '100';
+        const contentDiv = document.getElementById('content');
+
+        if (barcodeText) {
+            // Construct URL to the first HTML page with all parameters
+            const generatorUrl = 'barcode-generator.html?text=' + encodeURIComponent(barcodeText) +
+                                '&type=' + encodeURIComponent(barcodeType) +
+                                '&width=' + encodeURIComponent(barcodeWidth) +
+                                '&height=' + encodeURIComponent(barcodeHeight);
+            
+            // Fetch the barcode JSON from the first page
+            fetch(generatorUrl)
+                .then(response => response.text())
+                .then(html => {
+                    console.log("html: "+html);
+                    
+                    // Parse the JSON from the response
+                    // The response is wrapped in <pre> tags, so we need to extract the JSON
+                    const jsonMatch = html.match(/<pre>([\s\S]*)<\/pre>/);
+                    if (jsonMatch) {
+                        const jsonData = JSON.parse(jsonMatch[1]);
+                        
+                        if (jsonData.success) {
+                            // Display the barcode image
+                            contentDiv.innerHTML = `
+                                <div class="barcode-container">
+                                    <img src="${jsonData.barcode}" alt="Barcode for ${jsonData.text}">
+                                    <div class="barcode-text">
+                                        <strong>Text:</strong> ${jsonData.text}<br>
+                                        <strong>Type:</strong> ${jsonData.type}<br>
+                                        <strong>Width:</strong> ${jsonData.width} | <strong>Height:</strong> ${jsonData.height}
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            contentDiv.className = 'error';
+                            contentDiv.innerHTML = `Error: ${jsonData.error}`;
+                        }
+                    } else {
+                        throw new Error('Could not parse JSON response');
+                    }
+                })
+                .catch(error => {
+                    contentDiv.className = 'error';
+                    contentDiv.innerHTML = `Error loading barcode: ${error.message}`;
+                });
+        } else {
+            contentDiv.className = 'error';
+            contentDiv.innerHTML = `
+                No barcode text provided.<br><br>
+                <strong>Usage:</strong> Add ?text=YOUR_TEXT to the URL<br>
+                <strong>Optional parameters:</strong> &type=CODE128&width=2&height=100<br>
+                <strong>Example:</strong> ${window.location.href}?text=123456789&type=CODE39&width=3&height=150<br><br>
+                <strong>Supported types:</strong> CODE128, CODE39, EAN13, EAN8, UPC, ITF14, MSI, pharmacode
+            `;
+        }
+    </script>
+</body>
+</html>
