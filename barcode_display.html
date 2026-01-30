@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Display</title>
+    <style>
+        .barcode-png {
+            display: block;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <img class="barcode-png" style="display: block;" alt="Barcode" id="barcodeImage">
+    <script>
+        window.onload = async function() {
+            // Get barcode text from query parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const text = urlParams.get('text');
+            const format = urlParams.get('format') || '';
+            const width = urlParams.get('width') || '';
+            const height = urlParams.get('height') || '';
+            if (!text) {
+                document.body.innerHTML = '<h2>Error: Missing text parameter</h2>' +
+                    '<p><strong>Usage:</strong> Add ?text=YOUR_BARCODE_TEXT to the URL</p>' +
+                    '<p><strong>Example:</strong></p>' +
+                    '<ul>' +
+                    '<li>?text=123456789012</li>' +
+                    '<li>?text=HELLO123&format=CODE39</li>' +
+                    '<li>?text=987654321&format=CODE128&width=3&height=150</li>' +
+                    '</ul>' +
+                    '<p><strong>Available Parameters:</strong></p>' +
+                    '<ul>' +
+                    '<li><strong>text</strong> (required) - The barcode text/number</li>' +
+                    '<li><strong>format</strong> (optional) - CODE128, EAN13, UPC, CODE39, ITF14, MSI, pharmacode (default: CODE128)</li>' +
+                    '<li><strong>width</strong> (optional) - Width of bars (default: 2)</li>' +
+                    '<li><strong>height</strong> (optional) - Height of barcode (default: 100)</li>' +
+                    '</ul>';
+                return;
+            }
+            try {
+                // Build API URL
+                const apiUrl = window.location.origin + window.location.pathname.replace('barcode_display', 'barcode_api');
+                let apiCallUrl = apiUrl + '?text=' + encodeURIComponent(text);
+                
+                if (format) apiCallUrl += '&format=' + encodeURIComponent(format);
+                if (width) apiCallUrl += '&width=' + encodeURIComponent(width);
+                if (height) apiCallUrl += '&height=' + encodeURIComponent(height);
+                // Fetch from API
+                const response = await fetch(apiCallUrl);
+                const html = await response.text();
+                
+                // Extract JSON from the HTML response
+                const preStart = html.indexOf('<pre>');
+                const preEnd = html.indexOf('</pre>');
+                const jsonText = html.substring(preStart + 5, preEnd);
+                
+                console.log("returned jsonText:", jsonText);
+                
+                // Parse JSON
+                const data = JSON.parse(jsonText);
+                if (data.error) {
+                    document.body.innerHTML = '<p>Error: ' + data.error + '</p>';
+                    return;
+                }
+                // Display the barcode image
+                document.getElementById('barcodeImage').src = data.image;
+            } catch (e) {
+                document.body.innerHTML = '<p>Error: ' + e.message + '</p>';
+            }
+        };
+    </script>
+</body>
+</html>
