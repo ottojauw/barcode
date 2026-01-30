@@ -29,10 +29,6 @@
             background: #fafafa;
             border-radius: 4px;
         }
-        .barcode-png {
-            display: block;
-            margin: 20px auto;
-        }
         .barcode-text {
             margin-top: 15px;
             font-size: 18px;
@@ -49,6 +45,10 @@
             padding: 20px;
             background: #ffebee;
             border-radius: 4px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
         }
     </style>
 </head>
@@ -68,24 +68,27 @@
         const contentDiv = document.getElementById('content');
 
         if (barcodeText) {
+            // Create a hidden iframe to load the generator
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            
             // Construct URL to the generator page with all parameters
             const generatorUrl = 'barcode-generator.html?text=' + encodeURIComponent(barcodeText) +
                                 '&type=' + encodeURIComponent(barcodeType) +
                                 '&width=' + encodeURIComponent(barcodeWidth) +
                                 '&height=' + encodeURIComponent(barcodeHeight);
             
-            // Fetch the base64 string from the generator
-            fetch(generatorUrl)
-                .then(response => response.text())
-                .then(base64String => {
-                    console.log("___ base64String: "+base64String);
+            iframe.onload = function() {
+                try {
+                    // Get the base64 string from the iframe's window object
+                    const base64Image = iframe.contentWindow.barcodeBase64;
+                    console.log("___ base64Image: "+base64Image);
                     
-                    // Check if it's a valid base64 image string
-                    if (base64String.startsWith('data:image')) {
+                    if (base64Image && base64Image.startsWith('data:image')) {
                         // Display the barcode image
                         contentDiv.innerHTML = `
                             <div class="barcode-container">
-                                <img class="barcode-png" style="display: block;" alt="Barcode" src="${base64String}">
+                                <img src="${base64Image}" alt="Barcode for ${barcodeText}">
                                 <div class="barcode-text">
                                     <strong>Text:</strong> ${barcodeText}<br>
                                     <strong>Type:</strong> ${barcodeType}<br>
@@ -94,15 +97,29 @@
                             </div>
                         `;
                     } else {
-                        // It's an error message
+                        // Try to get error message from iframe body
+                        const errorMsg = iframe.contentWindow.document.body.textContent;
                         contentDiv.className = 'error';
-                        contentDiv.innerHTML = base64String;
+                        contentDiv.innerHTML = `Error: ${errorMsg || 'Failed to generate barcode'}`;
                     }
-                })
-                .catch(error => {
+                    
+                    // Remove the iframe after a short delay
+                    setTimeout(() => document.body.removeChild(iframe), 100);
+                } catch (error) {
                     contentDiv.className = 'error';
                     contentDiv.innerHTML = `Error loading barcode: ${error.message}`;
-                });
+                    document.body.removeChild(iframe);
+                }
+            };
+            
+            iframe.onerror = function() {
+                contentDiv.className = 'error';
+                contentDiv.innerHTML = 'Error loading barcode generator';
+                document.body.removeChild(iframe);
+            };
+            
+            iframe.src = generatorUrl;
+            document.body.appendChild(iframe);
         } else {
             contentDiv.className = 'error';
             contentDiv.innerHTML = `
