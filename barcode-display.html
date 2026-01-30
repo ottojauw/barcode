@@ -68,51 +68,57 @@
         const contentDiv = document.getElementById('content');
 
         if (barcodeText) {
-            // Construct URL to the first HTML page with all parameters
-            const generatorUrl = 'barcode-generator.html?text=' + encodeURIComponent(barcodeText) +
+            // Create a hidden iframe to load the generator
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            
+            // Construct URL to the generator page with all parameters
+            const generatorUrl = 'barcode-generator-json.html?text=' + encodeURIComponent(barcodeText) +
                                 '&type=' + encodeURIComponent(barcodeType) +
                                 '&width=' + encodeURIComponent(barcodeWidth) +
                                 '&height=' + encodeURIComponent(barcodeHeight);
             
-            // Fetch the barcode JSON from the first page
-            fetch(generatorUrl)
-                .then(response => response.text())
-                .then(html => {
-                    console.log("___ html: "+html);
-
-                    // Parse the JSON from the response
-                    // The response is wrapped in <pre> tags, so we need to extract the JSON
-                    const jsonMatch = html.match(/<pre>([\s\S]*)<\/pre>/);
-                    console.log("___ jsonMatch: "+jsonMatch);
-
-                    if (jsonMatch) {
-                        const jsonData = JSON.parse(jsonMatch[1]);
-                        console.log("___ jsonData: "+jsonData);
-                        
-                        if (jsonData.success) {
-                            // Display the barcode image
-                            contentDiv.innerHTML = `
-                                <div class="barcode-container">
-                                    <img src="${jsonData.barcode}" alt="Barcode for ${jsonData.text}">
-                                    <div class="barcode-text">
-                                        <strong>Text:</strong> ${jsonData.text}<br>
-                                        <strong>Type:</strong> ${jsonData.type}<br>
-                                        <strong>Width:</strong> ${jsonData.width} | <strong>Height:</strong> ${jsonData.height}
-                                    </div>
+            iframe.onload = function() {
+                try {
+                    // Access the window object of the iframe to get the response
+                    const jsonData = iframe.contentWindow.barcodeResponse;
+                    
+                    if (jsonData && jsonData.success) {
+                        // Display the barcode image
+                        contentDiv.innerHTML = `
+                            <div class="barcode-container">
+                                <img src="${jsonData.barcode}" alt="Barcode for ${jsonData.text}">
+                                <div class="barcode-text">
+                                    <strong>Text:</strong> ${jsonData.text}<br>
+                                    <strong>Type:</strong> ${jsonData.type}<br>
+                                    <strong>Width:</strong> ${jsonData.width} | <strong>Height:</strong> ${jsonData.height}
                                 </div>
-                            `;
-                        } else {
-                            contentDiv.className = 'error';
-                            contentDiv.innerHTML = `Error: ${jsonData.error}`;
-                        }
+                            </div>
+                        `;
+                    } else if (jsonData) {
+                        contentDiv.className = 'error';
+                        contentDiv.innerHTML = `Error: ${jsonData.error}`;
                     } else {
-                        throw new Error('Could not parse JSON response');
+                        throw new Error('No response data available');
                     }
-                })
-                .catch(error => {
+                    
+                    // Remove the iframe after a short delay
+                    setTimeout(() => document.body.removeChild(iframe), 100);
+                } catch (error) {
                     contentDiv.className = 'error';
                     contentDiv.innerHTML = `Error loading barcode: ${error.message}`;
-                });
+                    document.body.removeChild(iframe);
+                }
+            };
+            
+            iframe.onerror = function() {
+                contentDiv.className = 'error';
+                contentDiv.innerHTML = 'Error loading barcode generator';
+                document.body.removeChild(iframe);
+            };
+            
+            iframe.src = generatorUrl;
+            document.body.appendChild(iframe);
         } else {
             contentDiv.className = 'error';
             contentDiv.innerHTML = `
