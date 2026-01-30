@@ -79,39 +79,44 @@
                                 '&height=' + encodeURIComponent(barcodeHeight);
             
             iframe.onload = function() {
-                try {
-                    // Get the JSON response from the iframe's window object
-                    const jsonData = iframe.contentWindow.barcodeResponse;
-                    console.log("___ jsonData: "+jsonData);
-                    
-                    if (jsonData && jsonData.barcode) {
-                        console.log("___ jsonData.barcode: "+jsonData.barcode);
+                // Add a small delay to ensure the iframe's script has finished executing
+                setTimeout(() => {
+                    try {
+                        // Get the JSON response from the iframe's window object
+                        const jsonData = iframe.contentWindow.barcodeResponse;
+                        console.log("___ jsonData: "+jsonData);
                         
-                        // Display the barcode image
-                        contentDiv.innerHTML = `
-                            <div class="barcode-container">
-                                <img src="${jsonData.barcode}" alt="Barcode for ${jsonData.text}">
-                                <div class="barcode-text">
-                                    <strong>Text:</strong> ${jsonData.text}<br>
-                                    <strong>Type:</strong> ${jsonData.type}<br>
-                                    <strong>Width:</strong> ${jsonData.width} | <strong>Height:</strong> ${jsonData.height}
+                        if (jsonData && jsonData.barcode) {
+                            console.log("___ jsonData.barcode: "+jsonData.barcode);
+
+                            // Display the barcode image
+                            contentDiv.innerHTML = `
+                                <div class="barcode-container">
+                                    <img src="${jsonData.barcode}" alt="Barcode for ${jsonData.text}">
+                                    <div class="barcode-text">
+                                        <strong>Text:</strong> ${jsonData.text}<br>
+                                        <strong>Type:</strong> ${jsonData.type}<br>
+                                        <strong>Width:</strong> ${jsonData.width} | <strong>Height:</strong> ${jsonData.height}
+                                    </div>
                                 </div>
-                            </div>
-                        `;
-                    } else if (jsonData && jsonData.error) {
+                            `;
+                        } else if (jsonData && jsonData.error) {
+                            contentDiv.className = 'error';
+                            contentDiv.innerHTML = `Error: ${jsonData.error}`;
+                        } else {
+                            throw new Error('No response data available');
+                        }
+                        
+                        // Remove the iframe after displaying
+                        setTimeout(() => document.body.removeChild(iframe), 100);
+                    } catch (error) {
                         contentDiv.className = 'error';
-                        contentDiv.innerHTML = `Error: ${jsonData.error}`;
-                    } else {
-                        throw new Error('No response data available');
+                        contentDiv.innerHTML = `Error loading barcode: ${error.message}`;
+                        try {
+                            document.body.removeChild(iframe);
+                        } catch (e) {}
                     }
-                    
-                    // Remove the iframe after a short delay
-                    setTimeout(() => document.body.removeChild(iframe), 100);
-                } catch (error) {
-                    contentDiv.className = 'error';
-                    contentDiv.innerHTML = `Error loading barcode: ${error.message}`;
-                    document.body.removeChild(iframe);
-                }
+                }, 200);
             };
             
             iframe.onerror = function() {
